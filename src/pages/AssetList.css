@@ -1,0 +1,205 @@
+.asset-list-page h1 {
+  font-size: 1.8rem;
+  margin-bottom: 4px;
+}
+
+.asset-list-page .subtitle {
+  color: #64748b;
+  margin-bottom: 20px;
+}
+
+.filters {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.search-input {
+  flex: 1;
+  min-width: 200px;
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.search-input:focus {
+  border-color: #3b82f6;
+}
+
+.filter-select {
+  padding: 10px 16px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  outline: none;
+  background: #fff;
+  cursor: pointer;
+}
+
+.asset-table-wrapper {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.asset-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.asset-table th {
+  background: #f8fafc;
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 0.85rem;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.asset-table td {
+  padding: 12px 16px;
+  border-top: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.asset-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.asset-thumb {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+}
+
+.no-image {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+  border-radius: 8px;
+  font-size: 1.2rem;
+}
+
+.asset-name {
+  font-weight: 500;
+}
+
+.status-tag {
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.status-tag.active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-tag.maintenance {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.btn-delete {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.btn-delete:hover {
+  background: #fee2e2;
+}
+
+.empty-row {
+  text-align: center;
+  padding: 40px !important;
+  color: #94a3b8;
+}
+
+/* Depreciation styles */
+.depreciation-cell {
+  color: #dc2626;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.dep-daily {
+  white-space: nowrap;
+}
+
+.current-value-cell {
+  font-weight: 600;
+  color: #059669;
+}
+
+.dep-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dep-bar {
+  width: 60px;
+  height: 6px;
+  background: #e2e8f0;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.dep-bar-fill {
+  height: 100%;
+  background: #f59e0b;
+  border-radius: 3px;
+  transition: width 0.3s;
+}
+
+.dep-percent {
+  font-size: 0.8rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+/* Asset code */
+.asset-code {
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+  color: #3b82f6;
+  font-size: 0.85rem;
+}
+
+/* Edit button */
+.btn-edit {
+  background: none;
+  border: none;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  margin-right: 4px;
+}
+
+.btn-edit:hover {
+  background: #dbeafe;
+}
+
+/* Owner cell */
+.owner-cell {
+  font-size: 0.9rem;
+  color: #374151;
+}
