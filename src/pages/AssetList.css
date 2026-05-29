@@ -53,23 +53,24 @@
 }
 
 .asset-table th {
-  background: #f8fafc;
+  background: #e2e8f0;
   padding: 14px 16px;
   text-align: left;
   font-size: 0.85rem;
-  color: #64748b;
+  color: #475569;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  font-weight: 600;
 }
 
 .asset-table td {
   padding: 12px 16px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid #e2e8f0;
   vertical-align: middle;
 }
 
 .asset-table tbody tr:hover {
-  background: #f8fafc;
+  background: #f0f4f8;
 }
 
 .asset-thumb {
@@ -122,7 +123,8 @@
 }
 
 .btn-delete:hover {
-  background: #fee2e2;
+  background: #fecaca;
+  color: #ef4444;
 }
 
 .empty-row {
@@ -195,7 +197,8 @@
 }
 
 .btn-edit:hover {
-  background: #dbeafe;
+  background: #bfdbfe;
+  color: #2563eb;
 }
 
 /* Owner cell */
