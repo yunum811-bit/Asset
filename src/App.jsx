@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { HashRouter, Routes, Route, NavLink } from 'react-router-dom';
+import { HashRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom';
 import Dashboard from './pages/Dashboard';
 import AssetList from './pages/AssetList';
 import AssetForm from './pages/AssetForm';
 import ImportExport from './pages/ImportExport';
 import { useFirestore } from './hooks/useFirestore';
+import { isFirebaseConfigured } from './firebase';
 import './App.css';
 
 const COMPANIES = [
@@ -23,7 +24,9 @@ function App() {
     return COMPANIES[0].id;
   });
 
-  const { assets, loading, addAsset, updateAsset, deleteAsset, importAssets } =
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const { assets, loading, error, clearError, addAsset, updateAsset, deleteAsset, importAssets } =
     useFirestore(selectedCompany);
 
   const currentCompanyName =
@@ -53,10 +56,24 @@ function App() {
     await importAssets(newAssets);
   };
 
+  const closeSidebar = () => setSidebarOpen(false);
+
   return (
     <HashRouter>
       <div className="app">
-        <nav className="sidebar">
+        {/* Mobile hamburger */}
+        <button
+          className="hamburger-btn"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
+          aria-label="เปิดเมนู"
+        >
+          ☰
+        </button>
+
+        {/* Overlay for mobile */}
+        {sidebarOpen && <div className="sidebar-overlay" onClick={closeSidebar} />}
+
+        <nav className={`sidebar ${sidebarOpen ? 'open' : ''}`}>
           <div className="sidebar-header">
             <h2>📋 ทะเบียนทรัพย์สิน</h2>
           </div>
@@ -78,23 +95,55 @@ function App() {
 
           <ul className="nav-links">
             <li>
-              <NavLink to="/" end>
+              <NavLink to="/" end onClick={closeSidebar}>
                 📊 Dashboard
               </NavLink>
             </li>
             <li>
-              <NavLink to="/assets">📦 รายการทรัพย์สิน</NavLink>
+              <NavLink to="/assets" onClick={closeSidebar}>
+                📦 รายการทรัพย์สิน
+              </NavLink>
             </li>
             <li>
-              <NavLink to="/assets/new">➕ เพิ่มทรัพย์สิน</NavLink>
+              <NavLink to="/assets/new" onClick={closeSidebar}>
+                ➕ เพิ่มทรัพย์สิน
+              </NavLink>
             </li>
             <li>
-              <NavLink to="/import-export">📁 นำเข้า/ส่งออก</NavLink>
+              <NavLink to="/import-export" onClick={closeSidebar}>
+                📁 นำเข้า/ส่งออก
+              </NavLink>
             </li>
           </ul>
+
+          {/* แสดงสถานะการเชื่อมต่อ */}
+          <div className="connection-status">
+            {isFirebaseConfigured ? (
+              <span className="status-online">🟢 เชื่อมต่อ Firebase</span>
+            ) : (
+              <span className="status-offline">🟡 โหมดออฟไลน์ (localStorage)</span>
+            )}
+          </div>
         </nav>
+
         <main className="main-content">
           <div className="company-badge">🏢 {currentCompanyName}</div>
+
+          {/* Error banner */}
+          {error && (
+            <div className="error-banner">
+              <span>⚠️ {error}</span>
+              <button onClick={clearError} aria-label="ปิด">✕</button>
+            </div>
+          )}
+
+          {/* Firebase not configured warning */}
+          {!isFirebaseConfigured && (
+            <div className="info-banner">
+              💡 ยังไม่ได้ตั้งค่า Firebase — ข้อมูลจะเก็บใน localStorage ของเบราว์เซอร์เท่านั้น
+              (สร้างไฟล์ <code>.env</code> ตาม <code>.env.example</code> เพื่อเชื่อมต่อ Firebase)
+            </div>
+          )}
 
           {loading ? (
             <div className="loading-state">
@@ -126,6 +175,8 @@ function App() {
                   />
                 }
               />
+              {/* 404 catch-all */}
+              <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           )}
         </main>

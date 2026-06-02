@@ -20,6 +20,8 @@ function AssetForm({ onSubmit, assets, isEdit }) {
   });
   const [images, setImages] = useState([]);
   const [success, setSuccess] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState('');
 
   // โหลดข้อมูลเดิมเมื่ออยู่ในโหมดแก้ไข
   useEffect(() => {
@@ -72,6 +74,11 @@ function AssetForm({ onSubmit, assets, isEdit }) {
     const filesToAdd = files.slice(0, remaining);
 
     filesToAdd.forEach((file) => {
+      // จำกัดขนาดไฟล์ 500KB เพื่อไม่ให้ Firestore document เกิน limit
+      if (file.size > 500 * 1024) {
+        alert(`ไฟล์ ${file.name} มีขนาดใหญ่เกินไป (สูงสุด 500KB)`);
+        return;
+      }
       const reader = new FileReader();
       reader.onload = (event) => {
         setImages((prev) => [...prev, event.target.result]);
@@ -84,12 +91,17 @@ function AssetForm({ onSubmit, assets, isEdit }) {
     setImages(images.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    if (submitting) return; // ป้องกัน double-submit
+
     if (!formData.assetCode || !formData.name || !formData.category || !formData.value) {
-      alert('กรุณากรอกข้อมูลที่จำเป็น (รหัสทรัพย์สิน, ชื่อ, หมวดหมู่, มูลค่า)');
+      setErrorMsg('กรุณากรอกข้อมูลที่จำเป็น (รหัสทรัพย์สิน, ชื่อ, หมวดหมู่, มูลค่า)');
       return;
     }
+
+    setSubmitting(true);
+    setErrorMsg('');
 
     const assetData = {
       ...formData,
@@ -99,16 +111,21 @@ function AssetForm({ onSubmit, assets, isEdit }) {
       images: images,
     };
 
-    if (isEdit) {
-      onSubmit({ ...assetData, id: id });
-    } else {
-      onSubmit(assetData);
-    }
+    try {
+      if (isEdit) {
+        await onSubmit({ ...assetData, id: id });
+      } else {
+        await onSubmit(assetData);
+      }
 
-    setSuccess(true);
-    setTimeout(() => {
-      navigate('/assets');
-    }, 1500);
+      setSuccess(true);
+      setTimeout(() => {
+        navigate('/assets');
+      }, 1500);
+    } catch (err) {
+      setErrorMsg('เกิดข้อผิดพลาดในการบันทึก กรุณาลองใหม่');
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -118,12 +135,16 @@ function AssetForm({ onSubmit, assets, isEdit }) {
         {isEdit ? 'แก้ไขข้อมูลทรัพย์สินที่เลือก' : 'กรอกข้อมูลทรัพย์สินที่ต้องการลงทะเบียน'}
       </p>
 
+      {errorMsg && (
+        <div className="error-message">❌ {errorMsg}</div>
+      )}
+
       <form className="asset-form" onSubmit={handleSubmit}>
         <div className="form-grid">
           <div className="form-section-title">ข้อมูลทั่วไป</div>
 
           <div className="form-group">
-            <label htmlFor="assetCode">รหัสทรัพย์สิน *</label>
+            <label htmlFor="assetCode">รหัสทรัพย์สิน <span className="required">*</span></label>
             <input
               id="assetCode"
               name="assetCode"
@@ -131,11 +152,12 @@ function AssetForm({ onSubmit, assets, isEdit }) {
               value={formData.assetCode}
               onChange={handleChange}
               placeholder="เช่น IT-001"
+              required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="name">ชื่อทรัพย์สิน *</label>
+            <label htmlFor="name">ชื่อทรัพย์สิน <span className="required">*</span></label>
             <input
               id="name"
               name="name"
@@ -143,16 +165,18 @@ function AssetForm({ onSubmit, assets, isEdit }) {
               value={formData.name}
               onChange={handleChange}
               placeholder="เช่น คอมพิวเตอร์ตั้งโต๊ะ"
+              required
             />
           </div>
 
           <div className="form-group">
-            <label htmlFor="category">หมวดหมู่ *</label>
+            <label htmlFor="category">หมวดหมู่ <span className="required">*</span></label>
             <select
               id="category"
               name="category"
               value={formData.category}
               onChange={handleChange}
+              required
             >
               <option value="">เลือกหมวดหมู่</option>
               <option value="อุปกรณ์ IT">อุปกรณ์ IT</option>
@@ -217,7 +241,7 @@ function AssetForm({ onSubmit, assets, isEdit }) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="value">มูลค่า (บาท) *</label>
+            <label htmlFor="value">มูลค่า (บาท) <span className="required">*</span></label>
             <input
               id="value"
               name="value"
@@ -226,6 +250,7 @@ function AssetForm({ onSubmit, assets, isEdit }) {
               value={formatNumber(formData.value)}
               onChange={handleMoneyChange}
               placeholder="0"
+              required
             />
           </div>
 
@@ -258,7 +283,7 @@ function AssetForm({ onSubmit, assets, isEdit }) {
           <div className="form-section-title">รูปภาพ</div>
 
           <div className="form-group full-width">
-            <label>แนบรูปภาพ (สูงสุด 2 รูป)</label>
+            <label>แนบรูปภาพ (สูงสุด 2 รูป, ไม่เกิน 500KB/รูป)</label>
             <div
               className="image-upload-area"
               onClick={() => document.getElementById('imageInput').click()}
@@ -273,7 +298,7 @@ function AssetForm({ onSubmit, assets, isEdit }) {
             >
               <div className="upload-icon">📁</div>
               <p>คลิกเพื่อเลือกรูปภาพ หรือลากไฟล์มาวาง</p>
-              <p>รองรับ JPG, PNG (สูงสุด 2 รูป)</p>
+              <p>รองรับ JPG, PNG (สูงสุด 2 รูป, ไม่เกิน 500KB/รูป)</p>
             </div>
             <input
               id="imageInput"
@@ -304,8 +329,8 @@ function AssetForm({ onSubmit, assets, isEdit }) {
         </div>
 
         <div className="form-actions">
-          <button type="submit" className="btn-submit">
-            {isEdit ? '💾 บันทึกการแก้ไข' : '💾 บันทึกทรัพย์สิน'}
+          <button type="submit" className="btn-submit" disabled={submitting}>
+            {submitting ? '⏳ กำลังบันทึก...' : isEdit ? '💾 บันทึกการแก้ไข' : '💾 บันทึกทรัพย์สิน'}
           </button>
           <button type="button" className="btn-cancel" onClick={() => navigate('/assets')}>
             ยกเลิก
