@@ -26,10 +26,10 @@
   border-left: 4px solid transparent;
 }
 
-.stat-card.blue { border-left-color: #3b82f6; }
-.stat-card.green { border-left-color: #10b981; }
-.stat-card.teal { border-left-color: #14b8a6; }
-.stat-card.orange { border-left-color: #f59e0b; }
+.stat-card.blue { border-left-color: #16a34a; }
+.stat-card.green { border-left-color: #65a30d; }
+.stat-card.teal { border-left-color: #ca8a04; }
+.stat-card.orange { border-left-color: #eab308; }
 
 .stat-icon {
   font-size: 2rem;
