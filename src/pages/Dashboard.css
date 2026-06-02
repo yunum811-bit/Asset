@@ -22,7 +22,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   border-left: 4px solid transparent;
 }
 
@@ -55,14 +55,14 @@
   background: #fff;
   border-radius: 12px;
   padding: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .section-card h2 {
   font-size: 1.1rem;
   margin-bottom: 16px;
   padding-bottom: 12px;
-  border-bottom: 1px solid #e2e8f0;
+  border-bottom: 1px solid #cbd5e1;
 }
 
 .category-list {
@@ -161,7 +161,7 @@
 }
 
 .dep-summary-item {
-  background: #f8fafc;
+  background: #f1f5f9;
   padding: 16px;
   border-radius: 8px;
   display: flex;
@@ -206,7 +206,7 @@
 
 .dep-table td {
   padding: 10px 12px;
-  border-top: 1px solid #f1f5f9;
+  border-top: 1px solid #e2e8f0;
 }
 
 .dep-table .red {
