@@ -75,6 +75,12 @@
   color: #94a3b8;
 }
 
+.code-hint {
+  font-size: 0.8rem;
+  color: #16a34a;
+  margin-top: 4px;
+}
+
 /* Image Upload */
 .image-upload-area {
   border: 2px dashed #cbd5e1;

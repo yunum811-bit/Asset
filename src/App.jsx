@@ -4,6 +4,7 @@ import Dashboard from './pages/Dashboard';
 import AssetList from './pages/AssetList';
 import AssetForm from './pages/AssetForm';
 import ImportExport from './pages/ImportExport';
+import CategoryManager from './pages/CategoryManager';
 import { useFirestore } from './hooks/useFirestore';
 import './App.css';
 
@@ -113,6 +114,11 @@ function App() {
                 📁 นำเข้า/ส่งออก
               </NavLink>
             </li>
+            <li>
+              <NavLink to="/categories" onClick={closeSidebar}>
+                🏷️ จัดการหมวดหมู่
+              </NavLink>
+            </li>
           </ul>
 
           {/* แสดงสถานะการเชื่อมต่อ */}
@@ -162,6 +168,7 @@ function App() {
                   />
                 }
               />
+              <Route path="/categories" element={<CategoryManager />} />
               {/* 404 catch-all */}
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>

@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { getCategories, getCategoryPrefix, generateNextAssetCode } from '../utils/categories';
 import './AssetForm.css';
 
-function AssetForm({ onSubmit, assets, isEdit }) {
+function AssetForm({ onSubmit, assets = [], isEdit }) {
   const navigate = useNavigate();
   const { id } = useParams();
+
+  const [categories] = useState(() => getCategories());
 
   const [formData, setFormData] = useState({
     assetCode: '',
@@ -45,6 +48,23 @@ function AssetForm({ onSubmit, assets, isEdit }) {
     }
   }, [isEdit, id, assets]);
 
+  // Auto-generate รหัสทรัพย์สินเมื่อเลือกหมวดหมู่ (เฉพาะตอนเพิ่มใหม่)
+  const handleCategoryChange = (e) => {
+    const selectedCategory = e.target.value;
+    setFormData((prev) => {
+      const updated = { ...prev, category: selectedCategory };
+
+      // ถ้าไม่ใช่โหมดแก้ไข ให้ auto-generate รหัส
+      if (!isEdit && selectedCategory) {
+        const prefix = getCategoryPrefix(selectedCategory);
+        const nextCode = generateNextAssetCode(prefix, assets);
+        updated.assetCode = nextCode;
+      }
+
+      return updated;
+    });
+  };
+
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -74,7 +94,6 @@ function AssetForm({ onSubmit, assets, isEdit }) {
     const filesToAdd = files.slice(0, remaining);
 
     filesToAdd.forEach((file) => {
-      // จำกัดขนาดไฟล์ 500KB เพื่อไม่ให้ Firestore document เกิน limit
       if (file.size > 500 * 1024) {
         alert(`ไฟล์ ${file.name} มีขนาดใหญ่เกินไป (สูงสุด 500KB)`);
         return;
@@ -93,7 +112,7 @@ function AssetForm({ onSubmit, assets, isEdit }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (submitting) return; // ป้องกัน double-submit
+    if (submitting) return;
 
     if (!formData.assetCode || !formData.name || !formData.category || !formData.value) {
       setErrorMsg('กรุณากรอกข้อมูลที่จำเป็น (รหัสทรัพย์สิน, ชื่อ, หมวดหมู่, มูลค่า)');
@@ -144,6 +163,24 @@ function AssetForm({ onSubmit, assets, isEdit }) {
           <div className="form-section-title">ข้อมูลทั่วไป</div>
 
           <div className="form-group">
+            <label htmlFor="category">หมวดหมู่ <span className="required">*</span></label>
+            <select
+              id="category"
+              name="category"
+              value={formData.category}
+              onChange={handleCategoryChange}
+              required
+            >
+              <option value="">เลือกหมวดหมู่</option>
+              {categories.map((cat) => (
+                <option key={cat.id} value={cat.name}>
+                  {cat.prefix} - {cat.name}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="form-group">
             <label htmlFor="assetCode">รหัสทรัพย์สิน <span className="required">*</span></label>
             <input
               id="assetCode"
@@ -151,9 +188,12 @@ function AssetForm({ onSubmit, assets, isEdit }) {
               type="text"
               value={formData.assetCode}
               onChange={handleChange}
-              placeholder="เช่น IT-001"
+              placeholder="เลือกหมวดหมู่เพื่อสร้างรหัสอัตโนมัติ"
               required
             />
+            {!isEdit && formData.category && (
+              <span className="code-hint">💡 รหัสสร้างอัตโนมัติ แก้ไขได้</span>
+            )}
           </div>
 
           <div className="form-group">
@@ -167,24 +207,6 @@ function AssetForm({ onSubmit, assets, isEdit }) {
               placeholder="เช่น คอมพิวเตอร์ตั้งโต๊ะ"
               required
             />
-          </div>
-
-          <div className="form-group">
-            <label htmlFor="category">หมวดหมู่ <span className="required">*</span></label>
-            <select
-              id="category"
-              name="category"
-              value={formData.category}
-              onChange={handleChange}
-              required
-            >
-              <option value="">เลือกหมวดหมู่</option>
-              <option value="อุปกรณ์ IT">อุปกรณ์ IT</option>
-              <option value="เฟอร์นิเจอร์">เฟอร์นิเจอร์</option>
-              <option value="ยานพาหนะ">ยานพาหนะ</option>
-              <option value="เครื่องใช้สำนักงาน">เครื่องใช้สำนักงาน</option>
-              <option value="อื่นๆ">อื่นๆ</option>
-            </select>
           </div>
 
           <div className="form-group">
