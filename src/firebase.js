@@ -2,7 +2,6 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
 // ใช้ environment variables จาก .env file
-// สร้างไฟล์ .env ที่ root ของโปรเจกต์ แล้วใส่ค่าจาก Firebase Console
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY || '',
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || '',
@@ -14,15 +13,21 @@ const firebaseConfig = {
 
 // ตรวจสอบว่ามี config จริงหรือไม่
 export const isFirebaseConfigured = Boolean(
-  firebaseConfig.apiKey && firebaseConfig.projectId && firebaseConfig.apiKey !== 'YOUR_API_KEY'
+  firebaseConfig.apiKey &&
+  firebaseConfig.projectId &&
+  firebaseConfig.apiKey !== 'YOUR_API_KEY' &&
+  firebaseConfig.projectId !== 'YOUR_PROJECT_ID'
 );
 
-let app = null;
 let db = null;
 
 if (isFirebaseConfigured) {
-  app = initializeApp(firebaseConfig);
-  db = getFirestore(app);
+  try {
+    const app = initializeApp(firebaseConfig);
+    db = getFirestore(app);
+  } catch (err) {
+    console.warn('Firebase initialization failed:', err.message);
+  }
 }
 
 export { db };

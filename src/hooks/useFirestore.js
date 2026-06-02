@@ -14,7 +14,7 @@ import { db, isFirebaseConfigured } from '../firebase';
 const COLLECTION_NAME = 'assets';
 const LOCAL_STORAGE_KEY = 'asset-registry-data';
 
-// === LocalStorage fallback ===
+// === LocalStorage helpers ===
 function getLocalAssets(companyId) {
   try {
     const all = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
@@ -40,6 +40,10 @@ function getAllLocalAssets() {
   }
 }
 
+function generateId() {
+  return 'local-' + Date.now() + '-' + Math.random().toString(36).slice(2);
+}
+
 // === Hook ===
 export function useFirestore(companyId) {
   const [assets, setAssets] = useState([]);
@@ -51,50 +55,58 @@ export function useFirestore(companyId) {
     setError(null);
 
     // ถ้า Firebase ยังไม่ได้ตั้งค่า ใช้ localStorage แทน
-    if (!isFirebaseConfigured) {
+    if (!isFirebaseConfigured || !db) {
       const localData = getLocalAssets(companyId);
       setAssets(localData);
       setLoading(false);
       return;
     }
 
-    // Realtime listener — ข้อมูลอัปเดตทันทีเมื่อมีการเปลี่ยนแปลง
-    const q = query(
-      collection(db, COLLECTION_NAME),
-      where('companyId', '==', companyId)
-    );
+    // Realtime listener
+    let unsubscribe = () => {};
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const data = snapshot.docs.map((d) => ({
-          id: d.id,
-          ...d.data(),
-        }));
-        setAssets(data);
-        setLoading(false);
-        setError(null);
-      },
-      (err) => {
-        console.error('Firestore error:', err);
-        setError('ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กำลังใช้ข้อมูลในเครื่อง');
-        // Fallback to localStorage
-        const localData = getLocalAssets(companyId);
-        setAssets(localData);
-        setLoading(false);
-      }
-    );
+    try {
+      const q = query(
+        collection(db, COLLECTION_NAME),
+        where('companyId', '==', companyId)
+      );
+
+      unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          const data = snapshot.docs.map((d) => ({
+            id: d.id,
+            ...d.data(),
+          }));
+          setAssets(data);
+          setLoading(false);
+          setError(null);
+        },
+        (err) => {
+          console.error('Firestore error:', err);
+          setError('ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กำลังใช้ข้อมูลในเครื่อง');
+          const localData = getLocalAssets(companyId);
+          setAssets(localData);
+          setLoading(false);
+        }
+      );
+    } catch (err) {
+      console.error('Failed to setup Firestore listener:', err);
+      const localData = getLocalAssets(companyId);
+      setAssets(localData);
+      setLoading(false);
+    }
 
     return () => unsubscribe();
   }, [companyId]);
 
   const addAsset = useCallback(async (asset) => {
     try {
-      if (!isFirebaseConfigured) {
+      if (!isFirebaseConfigured || !db) {
         const all = getAllLocalAssets();
         const newAsset = {
           ...asset,
-          id: 'local-' + Date.now() + '-' + Math.random().toString(36).slice(2),
+          id: generateId(),
           companyId,
           createdAt: new Date().toISOString(),
         };
@@ -118,7 +130,7 @@ export function useFirestore(companyId) {
 
   const updateAsset = useCallback(async (updatedAsset) => {
     try {
-      if (!isFirebaseConfigured) {
+      if (!isFirebaseConfigured || !db) {
         const all = getAllLocalAssets();
         const idx = all.findIndex((a) => a.id === updatedAsset.id);
         if (idx !== -1) {
@@ -144,7 +156,7 @@ export function useFirestore(companyId) {
 
   const deleteAsset = useCallback(async (id) => {
     try {
-      if (!isFirebaseConfigured) {
+      if (!isFirebaseConfigured || !db) {
         const all = getAllLocalAssets().filter((a) => a.id !== id);
         saveLocalAssets(all);
         setAssets(getLocalAssets(companyId));
@@ -162,11 +174,11 @@ export function useFirestore(companyId) {
 
   const importAssets = useCallback(async (newAssets) => {
     try {
-      if (!isFirebaseConfigured) {
+      if (!isFirebaseConfigured || !db) {
         const all = getAllLocalAssets();
         const toAdd = newAssets.map((asset) => ({
           ...asset,
-          id: 'local-' + Date.now() + '-' + Math.random().toString(36).slice(2),
+          id: generateId(),
           companyId,
           createdAt: new Date().toISOString(),
         }));
