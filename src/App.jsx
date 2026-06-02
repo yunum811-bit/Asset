@@ -5,7 +5,6 @@ import AssetList from './pages/AssetList';
 import AssetForm from './pages/AssetForm';
 import ImportExport from './pages/ImportExport';
 import { useFirestore } from './hooks/useFirestore';
-import { isFirebaseConfigured } from './firebase';
 import './App.css';
 
 const COMPANIES = [
@@ -118,11 +117,7 @@ function App() {
 
           {/* แสดงสถานะการเชื่อมต่อ */}
           <div className="connection-status">
-            {isFirebaseConfigured ? (
-              <span className="status-online">🟢 เชื่อมต่อ Firebase</span>
-            ) : (
-              <span className="status-offline">🟡 โหมดออฟไลน์ (localStorage)</span>
-            )}
+            <span className="status-online">🟢 เชื่อมต่อ Server</span>
           </div>
         </nav>
 
@@ -134,14 +129,6 @@ function App() {
             <div className="error-banner">
               <span>⚠️ {error}</span>
               <button onClick={clearError} aria-label="ปิด">✕</button>
-            </div>
-          )}
-
-          {/* Firebase not configured warning */}
-          {!isFirebaseConfigured && (
-            <div className="info-banner">
-              💡 ยังไม่ได้ตั้งค่า Firebase — ข้อมูลจะเก็บใน localStorage ของเบราว์เซอร์เท่านั้น
-              (สร้างไฟล์ <code>.env</code> ตาม <code>.env.example</code> เพื่อเชื่อมต่อ Firebase)
             </div>
           )}
 

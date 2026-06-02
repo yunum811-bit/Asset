@@ -1,48 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import {
-  collection,
-  doc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  where,
-} from 'firebase/firestore';
-import { db, isFirebaseConfigured } from '../firebase';
 
-const COLLECTION_NAME = 'assets';
-const LOCAL_STORAGE_KEY = 'asset-registry-data';
-
-// === LocalStorage helpers ===
-function getLocalAssets(companyId) {
-  try {
-    const all = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
-    return all.filter((a) => a.companyId === companyId);
-  } catch {
-    return [];
-  }
-}
-
-function saveLocalAssets(allAssets) {
-  try {
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(allAssets));
-  } catch (e) {
-    console.error('localStorage save error:', e);
-  }
-}
-
-function getAllLocalAssets() {
-  try {
-    return JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '[]');
-  } catch {
-    return [];
-  }
-}
-
-function generateId() {
-  return 'local-' + Date.now() + '-' + Math.random().toString(36).slice(2);
-}
+// ถ้ารันผ่าน dev server (vite) จะ proxy ไปที่ backend
+// ถ้ารันผ่าน production (express serve) จะเป็น same origin
+const API_BASE = import.meta.env.VITE_API_URL || '';
 
 // === Hook ===
 export function useFirestore(companyId) {
@@ -50,158 +10,89 @@ export function useFirestore(companyId) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    setLoading(true);
-    setError(null);
-
-    // ถ้า Firebase ยังไม่ได้ตั้งค่า ใช้ localStorage แทน
-    if (!isFirebaseConfigured || !db) {
-      const localData = getLocalAssets(companyId);
-      setAssets(localData);
-      setLoading(false);
-      return;
-    }
-
-    // Realtime listener
-    let unsubscribe = () => {};
-
+  const fetchAssets = useCallback(async () => {
     try {
-      const q = query(
-        collection(db, COLLECTION_NAME),
-        where('companyId', '==', companyId)
-      );
-
-      unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          const data = snapshot.docs.map((d) => ({
-            id: d.id,
-            ...d.data(),
-          }));
-          setAssets(data);
-          setLoading(false);
-          setError(null);
-        },
-        (err) => {
-          console.error('Firestore error:', err);
-          setError('ไม่สามารถเชื่อมต่อฐานข้อมูลได้ กำลังใช้ข้อมูลในเครื่อง');
-          const localData = getLocalAssets(companyId);
-          setAssets(localData);
-          setLoading(false);
-        }
-      );
+      setLoading(true);
+      setError(null);
+      const res = await fetch(`${API_BASE}/api/assets?companyId=${encodeURIComponent(companyId)}`);
+      if (!res.ok) throw new Error('Failed to fetch assets');
+      const data = await res.json();
+      setAssets(data);
     } catch (err) {
-      console.error('Failed to setup Firestore listener:', err);
-      const localData = getLocalAssets(companyId);
-      setAssets(localData);
+      console.error('Fetch error:', err);
+      setError('ไม่สามารถเชื่อมต่อ server ได้');
+      setAssets([]);
+    } finally {
       setLoading(false);
     }
-
-    return () => unsubscribe();
   }, [companyId]);
+
+  useEffect(() => {
+    fetchAssets();
+  }, [fetchAssets]);
 
   const addAsset = useCallback(async (asset) => {
     try {
-      if (!isFirebaseConfigured || !db) {
-        const all = getAllLocalAssets();
-        const newAsset = {
-          ...asset,
-          id: generateId(),
-          companyId,
-          createdAt: new Date().toISOString(),
-        };
-        all.push(newAsset);
-        saveLocalAssets(all);
-        setAssets(getLocalAssets(companyId));
-        return;
-      }
-
-      await addDoc(collection(db, COLLECTION_NAME), {
-        ...asset,
-        companyId,
-        createdAt: new Date().toISOString(),
+      const res = await fetch(`${API_BASE}/api/assets`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...asset, companyId }),
       });
+      if (!res.ok) throw new Error('Failed to add asset');
+      await fetchAssets();
     } catch (err) {
       console.error('Error adding asset:', err);
       setError('เกิดข้อผิดพลาดในการเพิ่มทรัพย์สิน');
       throw err;
     }
-  }, [companyId]);
+  }, [companyId, fetchAssets]);
 
   const updateAsset = useCallback(async (updatedAsset) => {
     try {
-      if (!isFirebaseConfigured || !db) {
-        const all = getAllLocalAssets();
-        const idx = all.findIndex((a) => a.id === updatedAsset.id);
-        if (idx !== -1) {
-          all[idx] = { ...all[idx], ...updatedAsset, updatedAt: new Date().toISOString() };
-          saveLocalAssets(all);
-          setAssets(getLocalAssets(companyId));
-        }
-        return;
-      }
-
       const { id, ...data } = updatedAsset;
-      const docRef = doc(db, COLLECTION_NAME, id);
-      await updateDoc(docRef, {
-        ...data,
-        updatedAt: new Date().toISOString(),
+      const res = await fetch(`${API_BASE}/api/assets/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
       });
+      if (!res.ok) throw new Error('Failed to update asset');
+      await fetchAssets();
     } catch (err) {
       console.error('Error updating asset:', err);
       setError('เกิดข้อผิดพลาดในการแก้ไขทรัพย์สิน');
       throw err;
     }
-  }, [companyId]);
+  }, [fetchAssets]);
 
   const deleteAsset = useCallback(async (id) => {
     try {
-      if (!isFirebaseConfigured || !db) {
-        const all = getAllLocalAssets().filter((a) => a.id !== id);
-        saveLocalAssets(all);
-        setAssets(getLocalAssets(companyId));
-        return;
-      }
-
-      const docRef = doc(db, COLLECTION_NAME, id);
-      await deleteDoc(docRef);
+      const res = await fetch(`${API_BASE}/api/assets/${id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete asset');
+      await fetchAssets();
     } catch (err) {
       console.error('Error deleting asset:', err);
       setError('เกิดข้อผิดพลาดในการลบทรัพย์สิน');
       throw err;
     }
-  }, [companyId]);
+  }, [fetchAssets]);
 
   const importAssets = useCallback(async (newAssets) => {
     try {
-      if (!isFirebaseConfigured || !db) {
-        const all = getAllLocalAssets();
-        const toAdd = newAssets.map((asset) => ({
-          ...asset,
-          id: generateId(),
-          companyId,
-          createdAt: new Date().toISOString(),
-        }));
-        all.push(...toAdd);
-        saveLocalAssets(all);
-        setAssets(getLocalAssets(companyId));
-        return;
-      }
-
-      const promises = newAssets.map((asset) =>
-        addDoc(collection(db, COLLECTION_NAME), {
-          ...asset,
-          companyId,
-          createdAt: new Date().toISOString(),
-        })
-      );
-      await Promise.all(promises);
+      const res = await fetch(`${API_BASE}/api/assets/import`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ companyId, assets: newAssets }),
+      });
+      if (!res.ok) throw new Error('Failed to import assets');
+      await fetchAssets();
     } catch (err) {
       console.error('Error importing assets:', err);
       setError('เกิดข้อผิดพลาดในการนำเข้าข้อมูล');
       throw err;
     }
-  }, [companyId]);
+  }, [companyId, fetchAssets]);
 
   const clearError = useCallback(() => setError(null), []);
 
