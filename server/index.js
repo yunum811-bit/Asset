@@ -35,6 +35,60 @@ db.exec(`
   )
 `);
 
+// === Categories (prefix mapping) ===
+// อ่าน categories จากไฟล์ หรือใช้ default
+const DEFAULT_CATEGORIES = [
+  { name: 'คอมพิวเตอร์', prefix: 'COM' },
+  { name: 'เฟอร์นิเจอร์', prefix: 'FU' },
+  { name: 'อุปกรณ์สำนักงาน', prefix: 'OE' },
+  { name: 'เครื่องมือ', prefix: 'EQ' },
+  { name: 'ทรัพย์สินอื่นๆ', prefix: 'OA' },
+];
+
+function getCategoryPrefix(categoryName) {
+  const found = DEFAULT_CATEGORIES.find((c) => c.name === categoryName);
+  return found ? found.prefix : 'XX';
+}
+
+/**
+ * Re-number รหัสทรัพย์สินทั้งหมดในหมวดหมู่เดียวกัน ตามลำดับวันที่ซื้อ
+ * เช่น ถ้ามี 3 รายการในหมวด COM เรียงตามวันที่ → COM-001, COM-002, COM-003
+ */
+function renumberAssetCodes(companyId, category) {
+  const prefix = getCategoryPrefix(category);
+
+  // ดึงทรัพย์สินในหมวดเดียวกัน เรียงตามวันที่ซื้อ แล้วตาม id
+  const rows = db.prepare(
+    `SELECT id, purchaseDate FROM assets 
+     WHERE companyId = ? AND category = ? 
+     ORDER BY purchaseDate ASC, id ASC`
+  ).all(companyId, category);
+
+  const updateStmt = db.prepare('UPDATE assets SET assetCode = ? WHERE id = ?');
+
+  const renumber = db.transaction(() => {
+    rows.forEach((row, index) => {
+      const newCode = `${prefix}-${String(index + 1).padStart(3, '0')}`;
+      updateStmt.run(newCode, row.id);
+    });
+  });
+
+  renumber();
+}
+
+/**
+ * Re-number ทุกหมวดหมู่ของบริษัทนั้น
+ */
+function renumberAllCategories(companyId) {
+  const categories = db.prepare(
+    'SELECT DISTINCT category FROM assets WHERE companyId = ? AND category IS NOT NULL AND category != ""'
+  ).all(companyId);
+
+  categories.forEach(({ category }) => {
+    renumberAssetCodes(companyId, category);
+  });
+}
+
 // === API Routes ===
 
 // GET /api/assets?companyId=xxx
@@ -46,7 +100,6 @@ app.get('/api/assets', (req, res) => {
 
   const rows = db.prepare('SELECT * FROM assets WHERE companyId = ? ORDER BY purchaseDate ASC, id ASC').all(companyId);
 
-  // แปลง images จาก JSON string กลับเป็น array
   const assets = rows.map((row) => ({
     ...row,
     images: JSON.parse(row.images || '[]'),
@@ -58,7 +111,7 @@ app.get('/api/assets', (req, res) => {
 // POST /api/assets
 app.post('/api/assets', (req, res) => {
   const {
-    companyId, assetCode, name, category, location, owner,
+    companyId, name, category, location, owner,
     purchaseDate, value, usefulLifeYears, salvageValue, status, images
   } = req.body;
 
@@ -73,7 +126,7 @@ app.post('/api/assets', (req, res) => {
 
   const result = stmt.run(
     companyId,
-    assetCode || '',
+    '', // assetCode จะถูก re-number หลัง insert
     name,
     category || '',
     location || '',
@@ -87,6 +140,11 @@ app.post('/api/assets', (req, res) => {
     new Date().toISOString()
   );
 
+  // Re-number รหัสในหมวดหมู่นี้ตามลำดับวันที่
+  if (category) {
+    renumberAssetCodes(companyId, category);
+  }
+
   res.json({ id: result.lastInsertRowid, message: 'Asset created' });
 });
 
@@ -94,20 +152,22 @@ app.post('/api/assets', (req, res) => {
 app.put('/api/assets/:id', (req, res) => {
   const { id } = req.params;
   const {
-    assetCode, name, category, location, owner,
+    companyId, name, category, location, owner,
     purchaseDate, value, usefulLifeYears, salvageValue, status, images
   } = req.body;
 
+  // ดึงข้อมูลเดิมเพื่อเช็คว่า category หรือ companyId เปลี่ยนไหม
+  const existing = db.prepare('SELECT companyId, category FROM assets WHERE id = ?').get(id);
+
   const stmt = db.prepare(`
     UPDATE assets SET
-      assetCode = ?, name = ?, category = ?, location = ?, owner = ?,
+      name = ?, category = ?, location = ?, owner = ?,
       purchaseDate = ?, value = ?, usefulLifeYears = ?, salvageValue = ?,
       status = ?, images = ?, updatedAt = ?
     WHERE id = ?
   `);
 
   stmt.run(
-    assetCode || '',
     name || '',
     category || '',
     location || '',
@@ -122,13 +182,36 @@ app.put('/api/assets/:id', (req, res) => {
     id
   );
 
+  // Re-number หมวดหมู่ที่เกี่ยวข้อง
+  const cid = companyId || (existing && existing.companyId);
+  if (cid) {
+    // Re-number หมวดเดิม (กรณีย้ายหมวด)
+    if (existing && existing.category && existing.category !== category) {
+      renumberAssetCodes(cid, existing.category);
+    }
+    // Re-number หมวดปัจจุบัน
+    if (category) {
+      renumberAssetCodes(cid, category);
+    }
+  }
+
   res.json({ message: 'Asset updated' });
 });
 
 // DELETE /api/assets/:id
 app.delete('/api/assets/:id', (req, res) => {
   const { id } = req.params;
+
+  // ดึงข้อมูลก่อนลบ เพื่อ re-number
+  const existing = db.prepare('SELECT companyId, category FROM assets WHERE id = ?').get(id);
+
   db.prepare('DELETE FROM assets WHERE id = ?').run(id);
+
+  // Re-number หมวดหมู่ที่ลบออกไป
+  if (existing && existing.companyId && existing.category) {
+    renumberAssetCodes(existing.companyId, existing.category);
+  }
+
   res.json({ message: 'Asset deleted' });
 });
 
@@ -149,7 +232,7 @@ app.post('/api/assets/import', (req, res) => {
     for (const asset of items) {
       stmt.run(
         companyId,
-        asset.assetCode || '',
+        '', // จะ re-number ทีหลัง
         asset.name || '',
         asset.category || '',
         asset.location || '',
@@ -166,6 +249,10 @@ app.post('/api/assets/import', (req, res) => {
   });
 
   insertMany(newAssets);
+
+  // Re-number ทุกหมวดหมู่
+  renumberAllCategories(companyId);
+
   res.json({ message: `Imported ${newAssets.length} assets` });
 });
 

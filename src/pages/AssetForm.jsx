@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { getCategories, getCategoryPrefix, generateNextAssetCode } from '../utils/categories';
+import { getCategories, getCategoryPrefix } from '../utils/categories';
 import './AssetForm.css';
 
 function AssetForm({ onSubmit, assets = [], isEdit }) {
@@ -48,21 +48,10 @@ function AssetForm({ onSubmit, assets = [], isEdit }) {
     }
   }, [isEdit, id, assets]);
 
-  // Auto-generate รหัสทรัพย์สินเมื่อเลือกหมวดหมู่ (เฉพาะตอนเพิ่มใหม่)
+  // เลือกหมวดหมู่
   const handleCategoryChange = (e) => {
     const selectedCategory = e.target.value;
-    setFormData((prev) => {
-      const updated = { ...prev, category: selectedCategory };
-
-      // ถ้าไม่ใช่โหมดแก้ไข ให้ auto-generate รหัส
-      if (!isEdit && selectedCategory) {
-        const prefix = getCategoryPrefix(selectedCategory);
-        const nextCode = generateNextAssetCode(prefix, assets);
-        updated.assetCode = nextCode;
-      }
-
-      return updated;
-    });
+    setFormData((prev) => ({ ...prev, category: selectedCategory }));
   };
 
   const handleChange = (e) => {
@@ -114,8 +103,8 @@ function AssetForm({ onSubmit, assets = [], isEdit }) {
     e.preventDefault();
     if (submitting) return;
 
-    if (!formData.assetCode || !formData.name || !formData.category || !formData.value) {
-      setErrorMsg('กรุณากรอกข้อมูลที่จำเป็น (รหัสทรัพย์สิน, ชื่อ, หมวดหมู่, มูลค่า)');
+    if (!formData.name || !formData.category || !formData.value) {
+      setErrorMsg('กรุณากรอกข้อมูลที่จำเป็น (ชื่อ, หมวดหมู่, มูลค่า)');
       return;
     }
 
@@ -181,20 +170,19 @@ function AssetForm({ onSubmit, assets = [], isEdit }) {
           </div>
 
           <div className="form-group">
-            <label htmlFor="assetCode">รหัสทรัพย์สิน <span className="required">*</span></label>
+            <label htmlFor="assetCode">รหัสทรัพย์สิน {isEdit && <span className="required">*</span>}</label>
             <input
               id="assetCode"
               name="assetCode"
               type="text"
-              value={formData.assetCode}
+              value={isEdit ? formData.assetCode : (formData.category ? `${getCategoryPrefix(formData.category)}-xxx` : '')}
               onChange={handleChange}
-              placeholder="เลือกหมวดหมู่เพื่อสร้างรหัสอัตโนมัติ"
-              required
+              placeholder="รหัสจะถูกกำหนดอัตโนมัติตามวันที่ซื้อ"
               readOnly={!isEdit}
               className={!isEdit ? 'auto-code' : ''}
             />
             {!isEdit && (
-              <span className="code-hint">💡 รหัสสร้างอัตโนมัติจากหมวดหมู่</span>
+              <span className="code-hint">💡 รหัสจะถูกกำหนดอัตโนมัติตามลำดับวันที่ซื้อ</span>
             )}
           </div>
 
