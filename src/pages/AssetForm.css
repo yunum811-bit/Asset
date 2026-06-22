@@ -81,6 +81,14 @@
   margin-top: 4px;
 }
 
+.form-group input.auto-code {
+  background: #f0fdf4;
+  font-family: 'Courier New', monospace;
+  font-weight: 700;
+  color: #16a34a;
+  cursor: default;
+}
+
 /* Image Upload */
 .image-upload-area {
   border: 2px dashed #cbd5e1;

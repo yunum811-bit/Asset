@@ -190,9 +190,11 @@ function AssetForm({ onSubmit, assets = [], isEdit }) {
               onChange={handleChange}
               placeholder="เลือกหมวดหมู่เพื่อสร้างรหัสอัตโนมัติ"
               required
+              readOnly={!isEdit}
+              className={!isEdit ? 'auto-code' : ''}
             />
-            {!isEdit && formData.category && (
-              <span className="code-hint">💡 รหัสสร้างอัตโนมัติ แก้ไขได้</span>
+            {!isEdit && (
+              <span className="code-hint">💡 รหัสสร้างอัตโนมัติจากหมวดหมู่</span>
             )}
           </div>
 
