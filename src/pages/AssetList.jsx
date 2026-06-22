@@ -19,6 +19,16 @@ function AssetList({ assets, onDelete }) {
     return matchSearch && matchCategory;
   });
 
+  // เรียงตามวันที่ซื้อ (เก่าสุดอยู่บน → ใหม่สุดอยู่ล่าง)
+  const sorted = [...filtered].sort((a, b) => {
+    const dateA = a.purchaseDate || '';
+    const dateB = b.purchaseDate || '';
+    if (!dateA && !dateB) return 0;
+    if (!dateA) return 1;
+    if (!dateB) return -1;
+    return dateA.localeCompare(dateB);
+  });
+
   return (
     <div className="asset-list-page">
       <h1>📦 รายการทรัพย์สิน</h1>
@@ -71,7 +81,7 @@ function AssetList({ assets, onDelete }) {
                 </td>
               </tr>
             ) : (
-              filtered.map((asset) => {
+              sorted.map((asset) => {
                 const dep = calculateDepreciation(
                   asset.value,
                   asset.salvageValue || 0,

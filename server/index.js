@@ -44,7 +44,7 @@ app.get('/api/assets', (req, res) => {
     return res.status(400).json({ error: 'companyId is required' });
   }
 
-  const rows = db.prepare('SELECT * FROM assets WHERE companyId = ? ORDER BY id DESC').all(companyId);
+  const rows = db.prepare('SELECT * FROM assets WHERE companyId = ? ORDER BY purchaseDate ASC, id ASC').all(companyId);
 
   // แปลง images จาก JSON string กลับเป็น array
   const assets = rows.map((row) => ({
