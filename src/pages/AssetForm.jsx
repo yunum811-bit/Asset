@@ -12,6 +12,7 @@ function AssetForm({ onSubmit, assets = [], isEdit }) {
   const [formData, setFormData] = useState({
     assetCode: '',
     name: '',
+    serialNumber: '',
     category: '',
     location: '',
     owner: '',
@@ -34,6 +35,7 @@ function AssetForm({ onSubmit, assets = [], isEdit }) {
         setFormData({
           assetCode: asset.assetCode || '',
           name: asset.name || '',
+          serialNumber: asset.serialNumber || '',
           category: asset.category || '',
           location: asset.location || '',
           owner: asset.owner || '',
@@ -196,6 +198,18 @@ function AssetForm({ onSubmit, assets = [], isEdit }) {
               onChange={handleChange}
               placeholder="เช่น คอมพิวเตอร์ตั้งโต๊ะ"
               required
+            />
+          </div>
+
+          <div className="form-group">
+            <label htmlFor="serialNumber">S/N (Serial Number)</label>
+            <input
+              id="serialNumber"
+              name="serialNumber"
+              type="text"
+              value={formData.serialNumber}
+              onChange={handleChange}
+              placeholder="เช่น SN-ABC123456"
             />
           </div>
 

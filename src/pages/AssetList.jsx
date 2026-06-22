@@ -14,6 +14,7 @@ function AssetList({ assets, onDelete }) {
     const matchSearch =
       a.name.toLowerCase().includes(search.toLowerCase()) ||
       (a.assetCode && a.assetCode.toLowerCase().includes(search.toLowerCase())) ||
+      (a.serialNumber && a.serialNumber.toLowerCase().includes(search.toLowerCase())) ||
       (a.owner && a.owner.toLowerCase().includes(search.toLowerCase()));
     const matchCategory = !filterCategory || a.category === filterCategory;
     return matchSearch && matchCategory;
@@ -63,6 +64,7 @@ function AssetList({ assets, onDelete }) {
               <th>รูปภาพ</th>
               <th>รหัส</th>
               <th>ชื่อทรัพย์สิน</th>
+              <th>S/N</th>
               <th>หมวดหมู่</th>
               <th>ผู้ครอบครอง</th>
               <th>มูลค่าเดิม (฿)</th>
@@ -76,7 +78,7 @@ function AssetList({ assets, onDelete }) {
           <tbody>
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan="11" className="empty-row">
+                <td colSpan="12" className="empty-row">
                   ไม่พบข้อมูลทรัพย์สิน
                 </td>
               </tr>
@@ -103,6 +105,7 @@ function AssetList({ assets, onDelete }) {
                     </td>
                     <td className="asset-code">{asset.assetCode || '-'}</td>
                     <td className="asset-name">{asset.name}</td>
+                    <td className="sn-cell">{asset.serialNumber || '-'}</td>
                     <td>{asset.category}</td>
                     <td className="owner-cell">{asset.owner || '-'}</td>
                     <td>{asset.value.toLocaleString()}</td>

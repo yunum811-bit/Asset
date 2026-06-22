@@ -21,6 +21,7 @@ db.exec(`
     companyId TEXT NOT NULL,
     assetCode TEXT,
     name TEXT NOT NULL,
+    serialNumber TEXT DEFAULT '',
     category TEXT,
     location TEXT,
     owner TEXT,
@@ -34,6 +35,13 @@ db.exec(`
     updatedAt TEXT
   )
 `);
+
+// เพิ่มคอลัมน์ serialNumber ถ้ายังไม่มี (สำหรับ DB เดิม)
+try {
+  db.exec(`ALTER TABLE assets ADD COLUMN serialNumber TEXT DEFAULT ''`);
+} catch (e) {
+  // คอลัมน์มีอยู่แล้ว
+}
 
 // === Categories (prefix mapping) ===
 // อ่าน categories จากไฟล์ หรือใช้ default
@@ -111,7 +119,7 @@ app.get('/api/assets', (req, res) => {
 // POST /api/assets
 app.post('/api/assets', (req, res) => {
   const {
-    companyId, name, category, location, owner,
+    companyId, name, serialNumber, category, location, owner,
     purchaseDate, value, usefulLifeYears, salvageValue, status, images
   } = req.body;
 
@@ -120,14 +128,15 @@ app.post('/api/assets', (req, res) => {
   }
 
   const stmt = db.prepare(`
-    INSERT INTO assets (companyId, assetCode, name, category, location, owner, purchaseDate, value, usefulLifeYears, salvageValue, status, images, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO assets (companyId, assetCode, name, serialNumber, category, location, owner, purchaseDate, value, usefulLifeYears, salvageValue, status, images, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result = stmt.run(
     companyId,
     '', // assetCode จะถูก re-number หลัง insert
     name,
+    serialNumber || '',
     category || '',
     location || '',
     owner || '',
@@ -152,7 +161,7 @@ app.post('/api/assets', (req, res) => {
 app.put('/api/assets/:id', (req, res) => {
   const { id } = req.params;
   const {
-    companyId, name, category, location, owner,
+    companyId, name, serialNumber, category, location, owner,
     purchaseDate, value, usefulLifeYears, salvageValue, status, images
   } = req.body;
 
@@ -161,7 +170,7 @@ app.put('/api/assets/:id', (req, res) => {
 
   const stmt = db.prepare(`
     UPDATE assets SET
-      name = ?, category = ?, location = ?, owner = ?,
+      name = ?, serialNumber = ?, category = ?, location = ?, owner = ?,
       purchaseDate = ?, value = ?, usefulLifeYears = ?, salvageValue = ?,
       status = ?, images = ?, updatedAt = ?
     WHERE id = ?
@@ -169,6 +178,7 @@ app.put('/api/assets/:id', (req, res) => {
 
   stmt.run(
     name || '',
+    serialNumber || '',
     category || '',
     location || '',
     owner || '',
@@ -224,8 +234,8 @@ app.post('/api/assets/import', (req, res) => {
   }
 
   const stmt = db.prepare(`
-    INSERT INTO assets (companyId, assetCode, name, category, location, owner, purchaseDate, value, usefulLifeYears, salvageValue, status, images, createdAt)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO assets (companyId, assetCode, name, serialNumber, category, location, owner, purchaseDate, value, usefulLifeYears, salvageValue, status, images, createdAt)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const insertMany = db.transaction((items) => {
@@ -234,6 +244,7 @@ app.post('/api/assets/import', (req, res) => {
         companyId,
         '', // จะ re-number ทีหลัง
         asset.name || '',
+        asset.serialNumber || '',
         asset.category || '',
         asset.location || '',
         asset.owner || '',

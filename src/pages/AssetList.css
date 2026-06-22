@@ -206,3 +206,10 @@
   font-size: 0.9rem;
   color: #374151;
 }
+
+/* S/N cell */
+.sn-cell {
+  font-family: 'Courier New', monospace;
+  font-size: 0.82rem;
+  color: #6b7280;
+}
