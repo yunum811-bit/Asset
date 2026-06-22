@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import './ImportExport.css';
 
@@ -8,9 +8,39 @@ function ImportExport({ assets, onImport, companyName }) {
   const [importSuccess, setImportSuccess] = useState('');
   const fileInputRef = useRef(null);
 
+  // === Export Filters ===
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterDateFrom, setFilterDateFrom] = useState('');
+  const [filterDateTo, setFilterDateTo] = useState('');
+
+  const categories = useMemo(() => [...new Set(assets.map((a) => a.category).filter(Boolean))], [assets]);
+  const statuses = useMemo(() => [...new Set(assets.map((a) => a.status).filter(Boolean))], [assets]);
+
+  // ข้อมูลที่กรองแล้วสำหรับ export
+  const filteredAssets = useMemo(() => {
+    return assets.filter((a) => {
+      if (filterCategory && a.category !== filterCategory) return false;
+      if (filterStatus && a.status !== filterStatus) return false;
+      if (filterDateFrom && a.purchaseDate && a.purchaseDate < filterDateFrom) return false;
+      if (filterDateTo && a.purchaseDate && a.purchaseDate > filterDateTo) return false;
+      return true;
+    });
+  }, [assets, filterCategory, filterStatus, filterDateFrom, filterDateTo]);
+
+  const clearFilters = () => {
+    setFilterCategory('');
+    setFilterStatus('');
+    setFilterDateFrom('');
+    setFilterDateTo('');
+  };
+
   // === EXPORT ===
+  const getExportData = () => filteredAssets;
+
   const exportAsCSV = () => {
-    if (assets.length === 0) {
+    const data = getExportData();
+    if (data.length === 0) {
       alert('ไม่มีข้อมูลทรัพย์สินให้ส่งออก');
       return;
     }
@@ -28,7 +58,7 @@ function ImportExport({ assets, onImport, companyName }) {
       'สถานะ',
     ];
 
-    const rows = assets.map((a) => [
+    const rows = data.map((a) => [
       a.assetCode || '',
       a.name || '',
       a.category || '',
@@ -41,7 +71,6 @@ function ImportExport({ assets, onImport, companyName }) {
       a.status || '',
     ]);
 
-    // BOM for Thai characters in Excel
     const BOM = '\uFEFF';
     const csvContent = BOM + [headers, ...rows].map((row) =>
       row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(',')
@@ -51,12 +80,13 @@ function ImportExport({ assets, onImport, companyName }) {
   };
 
   const exportAsExcel = () => {
-    if (assets.length === 0) {
+    const data = getExportData();
+    if (data.length === 0) {
       alert('ไม่มีข้อมูลทรัพย์สินให้ส่งออก');
       return;
     }
 
-    const data = assets.map((a) => ({
+    const sheetData = data.map((a) => ({
       'รหัสทรัพย์สิน': a.assetCode || '',
       'ชื่อทรัพย์สิน': a.name || '',
       'หมวดหมู่': a.category || '',
@@ -69,19 +99,20 @@ function ImportExport({ assets, onImport, companyName }) {
       'สถานะ': a.status || '',
     }));
 
-    const ws = XLSX.utils.json_to_sheet(data);
+    const ws = XLSX.utils.json_to_sheet(sheetData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'ทรัพย์สิน');
     XLSX.writeFile(wb, `ทรัพย์สิน_${companyName}_${getDateStr()}.xlsx`);
   };
 
   const exportAsJSON = () => {
-    if (assets.length === 0) {
+    const data = getExportData();
+    if (data.length === 0) {
       alert('ไม่มีข้อมูลทรัพย์สินให้ส่งออก');
       return;
     }
 
-    const exportData = assets.map(({ id, images, ...rest }) => rest);
+    const exportData = data.map(({ id, images, ...rest }) => rest);
     const jsonContent = JSON.stringify(exportData, null, 2);
     downloadFile(jsonContent, `ทรัพย์สิน_${companyName}_${getDateStr()}.json`, 'application/json');
   };
@@ -196,7 +227,6 @@ function ImportExport({ assets, onImport, companyName }) {
 
   const parseCSV = (content) => {
     try {
-      // Remove BOM if present
       const cleaned = content.replace(/^\uFEFF/, '');
       const lines = cleaned.split('\n').filter((line) => line.trim());
 
@@ -283,6 +313,8 @@ function ImportExport({ assets, onImport, companyName }) {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  const hasFilters = filterCategory || filterStatus || filterDateFrom || filterDateTo;
+
   return (
     <div className="import-export-page">
       <h1>📁 นำเข้า / ส่งออกข้อมูล</h1>
@@ -292,7 +324,67 @@ function ImportExport({ assets, onImport, companyName }) {
         {/* Export Section */}
         <div className="ie-card">
           <h2>📤 ส่งออกข้อมูล (Export)</h2>
-          <p className="ie-desc">ส่งออกข้อมูลทรัพย์สินทั้งหมด ({assets.length} รายการ)</p>
+
+          {/* Filters */}
+          <div className="export-filters">
+            <h4>🔍 กรองข้อมูลก่อนส่งออก</h4>
+            <div className="filter-row">
+              <select
+                value={filterCategory}
+                onChange={(e) => setFilterCategory(e.target.value)}
+                className="filter-input"
+              >
+                <option value="">ทุกหมวดหมู่</option>
+                {categories.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="filter-input"
+              >
+                <option value="">ทุกสถานะ</option>
+                {statuses.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="filter-row">
+              <label className="date-label">
+                ตั้งแต่
+                <input
+                  type="date"
+                  value={filterDateFrom}
+                  onChange={(e) => setFilterDateFrom(e.target.value)}
+                  className="filter-input"
+                />
+              </label>
+              <label className="date-label">
+                ถึง
+                <input
+                  type="date"
+                  value={filterDateTo}
+                  onChange={(e) => setFilterDateTo(e.target.value)}
+                  className="filter-input"
+                />
+              </label>
+            </div>
+
+            {hasFilters && (
+              <button className="btn-clear-filter" onClick={clearFilters}>
+                ✕ ล้างตัวกรอง
+              </button>
+            )}
+          </div>
+
+          <p className="ie-desc">
+            ส่งออก: <strong>{filteredAssets.length}</strong> รายการ
+            {hasFilters && ` (จากทั้งหมด ${assets.length})`}
+          </p>
+
           <div className="ie-actions">
             <button className="btn-export excel" onClick={exportAsExcel}>
               📗 ส่งออก Excel
