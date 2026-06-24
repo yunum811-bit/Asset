@@ -1,0 +1,28 @@
+เปลี่ยนเป็น port 4000 เรียบร้อยแล้วครับ เข้าใช้งานที่ http://localhost:4000
+
+ถ้าอยากเปลี่ยนเป็น port อื่นอีกในอนาคต แค่ตั้ง environment variable ก่อนรัน:
+
+set PORT=5555
+npm start
+
+
+
+
+Tips เพิ่มเติม
+ถ้าอยากให้ server รันตลอดไม่ปิด แม้ปิด terminal:
+npm install -g pm2
+pm2 start server/index.js --name asset-registry
+pm2 save
+ถ้า server เป็น Windows และอยากให้รันตอนเปิดเครื่อง ใช้ pm2-startup หรือสร้าง Task Scheduler ให้รัน node C:\Asset\server\index.js
+
+ไฟล์ข้อมูลอยู่ที่ 
+assets.db
+ — สำรองข้อมูลแค่ copy ไฟล์นี้เก็บไว้
+
+อัปเดตโค้ดในอนาคต
+เมื่อแก้โค้ดบนเครื่องคุณแล้ว push ขึ้น GitHub แล้ว บนเครื่อง server แค่รัน:
+
+cd D:\web\Asset
+git pull
+npm run build
+pm2 restart asset-registry
