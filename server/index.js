@@ -89,7 +89,7 @@ function renumberAssetCodes(companyId, category) {
  */
 function renumberAllCategories(companyId) {
   const categories = db.prepare(
-    'SELECT DISTINCT category FROM assets WHERE companyId = ? AND category IS NOT NULL AND category != ""'
+    "SELECT DISTINCT category FROM assets WHERE companyId = ? AND category IS NOT NULL AND category != ''"
   ).all(companyId);
 
   categories.forEach(({ category }) => {
