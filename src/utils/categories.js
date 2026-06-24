@@ -1,6 +1,6 @@
 // หมวดหมู่เริ่มต้น พร้อม prefix สำหรับสร้างรหัสทรัพย์สิน
 const DEFAULT_CATEGORIES = [
-  { id: 'COM', name: 'คอมพิวเตอร์', prefix: 'COM' },
+  { id: 'IT', name: 'คอมพิวเตอร์', prefix: 'IT' },
   { id: 'FU', name: 'เฟอร์นิเจอร์', prefix: 'FU' },
   { id: 'OE', name: 'อุปกรณ์สำนักงาน', prefix: 'OE' },
   { id: 'EQ', name: 'เครื่องมือ', prefix: 'EQ' },
