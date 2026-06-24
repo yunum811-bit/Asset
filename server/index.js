@@ -46,7 +46,7 @@ try {
 // === Categories (prefix mapping) ===
 // อ่าน categories จากไฟล์ หรือใช้ default
 const DEFAULT_CATEGORIES = [
-  { name: 'คอมพิวเตอร์', prefix: 'COM' },
+  { name: 'คอมพิวเตอร์', prefix: 'IT' },
   { name: 'เฟอร์นิเจอร์', prefix: 'FU' },
   { name: 'อุปกรณ์สำนักงาน', prefix: 'OE' },
   { name: 'เครื่องมือ', prefix: 'EQ' },
@@ -276,6 +276,11 @@ app.get('/{*splat}', (req, res) => {
 
 // === Start Server ===
 app.listen(PORT, '0.0.0.0', () => {
+  // Re-number รหัสทรัพย์สินทั้งหมดตอน start เพื่อให้ตรงกับ prefix ล่าสุด
+  const companies = db.prepare('SELECT DISTINCT companyId FROM assets').all();
+  companies.forEach(({ companyId }) => {
+    renumberAllCategories(companyId);
+  });
   console.log('');
   console.log('===========================================');
   console.log('  ระบบทะเบียนทรัพย์สิน - Server Started');
@@ -285,6 +290,7 @@ app.listen(PORT, '0.0.0.0', () => {
   console.log('');
   console.log('  คนในออฟฟิศเข้าใช้งานผ่าน Network URL');
   console.log('  ข้อมูลเก็บที่: ' + dbPath);
+  console.log('  รหัสทรัพย์สินถูก re-number ตาม prefix ล่าสุดแล้ว');
   console.log('===========================================');
   console.log('');
 });
